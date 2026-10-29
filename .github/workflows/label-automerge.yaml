@@ -1,0 +1,30 @@
+name: label-automerge
+on:
+  pull_request_target:
+    types: [labeled, synchronize]
+permissions: {}
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    env:
+      PR: ${{ github.event.pull_request.number }}
+      SHA: ${{ github.event.pull_request.head.sha }}
+      REPO: ${{ github.repository }}
+      SENDER: ${{ github.event.sender.login }}
+      ALLOWED: ${{ github.repository_owner }}
+    steps:
+      - uses: actions/create-github-app-token@v1
+        id: app
+        with:
+          app-id: ${{ vars.MERGE_APP_ID }}
+          private-key: ${{ secrets.MERGE_APP_KEY }}
+      - name: New push drops the label
+        if: github.event.action == 'synchronize'
+        env: { GH_TOKEN: "${{ steps.app.outputs.token }}" }
+        run: gh pr edit "$PR" --repo "$REPO" --remove-label automerge-bypass || true
+      - name: Merge
+        if: github.event.action == 'labeled' && github.event.label.name == 'automerge-bypass'
+        env: { GH_TOKEN: "${{ steps.app.outputs.token }}" }
+        run: |
+          [ "$SENDER" = "$ALLOWED" ] || { echo "labeler not allowed"; exit 1; }
+          gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$SHA"
