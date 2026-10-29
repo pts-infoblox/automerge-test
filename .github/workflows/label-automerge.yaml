@@ -27,4 +27,4 @@ jobs:
         env: { GH_TOKEN: "${{ steps.app.outputs.token }}" }
         run: |
           [ "$SENDER" = "$ALLOWED" ] || { echo "labeler not allowed"; exit 1; }
-          gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$SHA"
+          gh pr merge "$PR" --repo "$REPO" --squash --admin --match-head-commit "$SHA"
